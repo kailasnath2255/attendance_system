@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+
+{% block title %}Attendance History{% endblock %}
+
+{% block content %}
+<h2 class="mb-4">Your Attendance History</h2>
+
+{% if attendance_records %}
+    <div class="table-responsive">
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Date</th>
+                    <th>Time</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for record in attendance_records %}
+                <tr>
+                    <td>{{ loop.index }}</td>
+                    <td>{{ record.date }}</td>
+                    <td>{{ record.time }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+{% else %}
+    <div class="alert alert-info">
+        No attendance records found.
+    </div>
+{% endif %}
+{% endblock %}

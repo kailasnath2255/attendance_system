@@ -1,0 +1,257 @@
+{% extends "base.html" %}
+
+{% block title %}Attendance Report{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h4 class="mb-0">
+                        <i class="fas fa-chart-pie"></i> Attendance Report
+                    </h4>
+                    <div>
+                        <span class="badge badge-info">Total Working Days: {{ total_working_days }}</span>
+                        <a href="{{ url_for('export_attendance_report') }}" class="btn btn-success btn-sm ml-2">
+                            <i class="fas fa-file-excel"></i> Export to Excel
+                        </a>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <!-- Summary Cards -->
+                    <div class="row mb-4">
+                        <div class="col-md-3">
+                            <div class="card bg-primary text-white">
+                                <div class="card-body">
+                                    <div class="d-flex justify-content-between">
+                                        <div>
+                                            <h6>Total Students</h6>
+                                            <h3>{{ students|length }}</h3>
+                                        </div>
+                                        <div class="align-self-center">
+                                            <i class="fas fa-users fa-2x"></i>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card bg-success text-white">
+                                <div class="card-body">
+                                    <div class="d-flex justify-content-between">
+                                        <div>
+                                            <h6>Good Attendance (≥75%)</h6>
+                                            <h3>{{ students|selectattr('is_shortage', 'equalto', false)|list|length }}</h3>
+                                        </div>
+                                        <div class="align-self-center">
+                                            <i class="fas fa-check-circle fa-2x"></i>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card bg-danger text-white">
+                                <div class="card-body">
+                                    <div class="d-flex justify-content-between">
+                                        <div>
+                                            <h6>Attendance Shortage (<75%)</h6>
+                                            <h3>{{ students|selectattr('is_shortage', 'equalto', true)|list|length }}</h3>
+                                        </div>
+                                        <div class="align-self-center">
+                                            <i class="fas fa-exclamation-triangle fa-2x"></i>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card bg-info text-white">
+                                <div class="card-body">
+                                    <div class="d-flex justify-content-between">
+                                        <div>
+                                            <h6>Average Attendance</h6>
+                                            <h3>{{ "%.1f"|format((students|sum(attribute='percentage')/students|length) if students|length > 0 else 0) }}%</h3>
+                                        </div>
+                                        <div class="align-self-center">
+                                            <i class="fas fa-percentage fa-2x"></i>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Export Options -->
+                    <div class="row mb-3">
+                        <div class="col-md-12">
+                            <div class="alert alert-info">
+                                <i class="fas fa-info-circle"></i>
+                                Click the "Export to Excel" button above to download a comprehensive Excel report including all summary statistics and student data.
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Search and Filter -->
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <input type="text" id="searchInput" class="form-control" placeholder="Search by name or roll number...">
+                        </div>
+                        <div class="col-md-6">
+                            <select id="filterSelect" class="form-control">
+                                <option value="all">All Students</option>
+                                <option value="shortage">Attendance Shortage (<75%)</option>
+                                <option value="good">Good Attendance (≥75%)</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Attendance Table -->
+                    <div class="table-responsive">
+                        <table class="table table-striped table-hover" id="attendanceTable">
+                            <thead class="thead-dark">
+                                <tr>
+                                    <th>Roll Number</th>
+                                    <th>Name</th>
+                                    <th>Email</th>
+                                    <th>Days Present</th>
+                                    <th>Total Days</th>
+                                    <th>Percentage</th>
+                                    <th>Status</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for student in students %}
+                                <tr class="student-row {{ 'table-danger' if student.is_shortage else '' }}" 
+                                    data-name="{{ student.name.lower() }}" 
+                                    data-roll="{{ student.roll_number.lower() }}"
+                                    data-shortage="{{ 'true' if student.is_shortage else 'false' }}">
+                                    <td><strong>{{ student.roll_number }}</strong></td>
+                                    <td>{{ student.name }}</td>
+                                    <td>{{ student.email }}</td>
+                                    <td>
+                                        <span class="badge badge-primary">{{ student.days_present }}</span>
+                                    </td>
+                                    <td>
+                                        <span class="badge badge-secondary">{{ student.total_days }}</span>
+                                    </td>
+                                    <td>
+                                        <strong class="{{ 'text-danger' if student.is_shortage else 'text-success' }}">
+                                            {{ student.percentage }}%
+                                        </strong>
+                                    </td>
+                                    <td>
+                                        {% if student.is_shortage %}
+                                            <span class="badge badge-danger">
+                                                <i class="fas fa-exclamation-triangle"></i> Shortage
+                                            </span>
+                                        {% else %}
+                                            <span class="badge badge-success">
+                                                <i class="fas fa-check-circle"></i> Good
+                                            </span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <a href="{{ url_for('view_attendance') }}?student_id={{ student.id }}" 
+                                           class="btn btn-sm btn-outline-primary">
+                                            <i class="fas fa-eye"></i> View Details
+                                        </a>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Legend -->
+                    <div class="mt-3">
+                        <small class="text-muted">
+                            <strong>Legend:</strong>
+                            <span class="text-success"><i class="fas fa-check-circle"></i> Good Attendance (≥75%)</span> |
+                            <span class="text-danger"><i class="fas fa-exclamation-triangle"></i> Attendance Shortage (<75%)</span>
+                        </small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.table-danger {
+    background-color: #f5c6cb !important;
+}
+
+.card {
+    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+    border: 1px solid rgba(0, 0, 0, 0.125);
+}
+
+.badge {
+    font-size: 0.75em;
+}
+
+.table th {
+    border-top: none;
+    font-weight: 600;
+}
+
+.text-danger {
+    color: #dc3545 !important;
+}
+
+.text-success {
+    color: #28a745 !important;
+}
+
+.btn-success {
+    background-color: #28a745;
+    border-color: #28a745;
+}
+
+.btn-success:hover {
+    background-color: #218838;
+    border-color: #1e7e34;
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const searchInput = document.getElementById('searchInput');
+    const filterSelect = document.getElementById('filterSelect');
+    const rows = document.querySelectorAll('.student-row');
+
+    function filterTable() {
+        const searchTerm = searchInput.value.toLowerCase();
+        const filterValue = filterSelect.value;
+
+        rows.forEach(row => {
+            const name = row.dataset.name;
+            const roll = row.dataset.roll;
+            const isShortage = row.dataset.shortage === 'true';
+            
+            let showRow = true;
+
+            // Apply search filter
+            if (searchTerm && !name.includes(searchTerm) && !roll.includes(searchTerm)) {
+                showRow = false;
+            }
+
+            // Apply shortage filter
+            if (filterValue === 'shortage' && !isShortage) {
+                showRow = false;
+            } else if (filterValue === 'good' && isShortage) {
+                showRow = false;
+            }
+
+            row.style.display = showRow ? '' : 'none';
+        });
+    }
+
+    searchInput.addEventListener('input', filterTable);
+    filterSelect.addEventListener('change', filterTable);
+});
+</script>
+{% endblock %}

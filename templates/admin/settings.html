@@ -1,0 +1,181 @@
+{% extends 'base.html' %}
+
+{% block title %}WiFi Settings{% endblock %}
+
+{% block content %}
+<div class="container">
+    <h1>WiFi Settings</h1>
+    
+    <div class="row mt-4">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h4>WiFi Access Point</h4>
+                </div>
+                <div class="card-body">
+                    <form method="POST">
+                        <div class="mb-3">
+                            <label for="wifi_ssid" class="form-label">WiFi SSID</label>
+                            <input type="text" class="form-control" id="wifi_ssid" name="wifi_ssid" value="{{ settings.wifi_ssid }}" required>
+                            <div class="form-text">The name of the college WiFi network</div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="wifi_password" class="form-label">WiFi Password</label>
+                            <input type="password" class="form-control" id="wifi_password" name="wifi_password" value="{{ settings.wifi_password }}">
+                            <div class="form-text">Only needed if you want to share the password with students</div>
+                        </div>
+                        <button type="submit" name="update_settings" class="btn btn-primary">Save Settings</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header bg-info text-white">
+                    <h4>Current WiFi Connection</h4>
+                </div>
+                <div class="card-body">
+                    <div id="wifi-status-container">
+                        <div class="d-flex align-items-center mb-2">
+                            <div class="spinner-border spinner-border-sm text-primary me-2" id="wifi-spinner"></div>
+                            <span id="detection-status">Detecting WiFi connection...</span>
+                        </div>
+                        <div id="wifi-details" class="d-none">
+                            <div class="mb-2"><strong>SSID:</strong> <span id="current-ssid">Loading...</span></div>
+                            <div class="mb-2"><strong>MAC Address (BSSID):</strong> <span id="current-bssid">Loading...</span></div>
+                            <div class="mt-3">
+                                <button id="set-current-ap" class="btn btn-success">Set as Required Access Point</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h4>Required Access Point</h4>
+                </div>
+                <div class="card-body">
+                    {% if required_ap %}
+                    <div class="alert alert-success">
+                        <strong>Students must connect to this access point:</strong>
+                        <div class="mt-2">
+                            <strong>SSID:</strong> {{ required_ap.ssid }}<br>
+                            <strong>MAC Address (BSSID):</strong> {{ required_ap.bssid }}<br>
+                            <strong>Description:</strong> {{ required_ap.description or "No description" }}
+                        </div>
+                        <form method="POST" class="mt-3" onsubmit="return confirm('Are you sure you want to remove this requirement?');">
+                            <input type="hidden" name="ap_id" value="{{ required_ap.id }}">
+                            <button type="submit" name="delete_ap" class="btn btn-sm btn-danger">Remove Requirement</button>
+                        </form>
+                    </div>
+                    {% else %}
+                    <div class="alert alert-warning">
+                        No required access point has been set. Students will be able to mark attendance from any WiFi network.
+                        <br>Use the "Set as Required Access Point" button to restrict attendance to your current WiFi access point.
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card bg-light">
+                <div class="card-body">
+                    <h5>How This Works:</h5>
+                    <ul>
+                        <li>Each WiFi access point has a unique MAC address (BSSID)</li>
+                        <li>Setting a required access point ensures students must be physically present in the same WiFi coverage area</li>
+                        <li>Students will only be able to mark attendance when connected to the exact same access point</li>
+                        <li>This helps prevent remote attendance marking from different locations</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const detectionStatus = document.getElementById('detection-status');
+    const wifiSpinner = document.getElementById('wifi-spinner');
+    const wifiDetails = document.getElementById('wifi-details');
+    const currentSsid = document.getElementById('current-ssid');
+    const currentBssid = document.getElementById('current-bssid');
+    const setCurrentApBtn = document.getElementById('set-current-ap');
+    
+    // Function to detect current WiFi connection
+    function detectWiFi() {
+        fetch('/api/mac-address')
+            .then(response => response.json())
+            .then(data => {
+                wifiSpinner.classList.add('d-none');
+                wifiDetails.classList.remove('d-none');
+                
+                // Get current WiFi info
+                fetch('/api/wifi-info')
+                    .then(response => response.json())
+                    .then(wifiData => {
+                        currentSsid.textContent = wifiData.ssid || 'Not detected';
+                        currentBssid.textContent = wifiData.bssid || data.mac_address || 'Not detected';
+                        
+                        // Set up the button to add this access point
+                        setCurrentApBtn.addEventListener('click', function() {
+                            const description = prompt('Enter a description for this access point (e.g., Classroom 101):', '');
+                            if (description !== null) {
+                                // Submit form to add the access point
+                                fetch('/api/set-access-point', {
+                                    method: 'POST',
+                                    headers: {
+                                        'Content-Type': 'application/json',
+                                    },
+                                    body: JSON.stringify({
+                                        ssid: wifiData.ssid || document.getElementById('wifi_ssid').value,
+                                        bssid: wifiData.bssid || data.mac_address,
+                                        description: description
+                                    })
+                                })
+                                .then(response => response.json())
+                                .then(result => {
+                                    if (result.success) {
+                                        alert('Access point set successfully! Students will now need to connect to this specific access point.');
+                                        location.reload();
+                                    } else {
+                                        alert('Error: ' + result.message);
+                                    }
+                                })
+                                .catch(error => {
+                                    console.error('Error setting access point:', error);
+                                    alert('An error occurred while setting the access point.');
+                                });
+                            }
+                        });
+                    })
+                    .catch(error => {
+                        console.error('Error getting WiFi info:', error);
+                        currentSsid.textContent = 'Error detecting SSID';
+                        currentBssid.textContent = data.mac_address || 'Not detected';
+                    });
+            })
+            .catch(error => {
+                console.error('Error detecting MAC address:', error);
+                wifiSpinner.classList.add('d-none');
+                detectionStatus.textContent = 'Error detecting WiFi connection';
+                detectionStatus.className = 'text-danger';
+            });
+    }
+    
+    // Detect WiFi when page loads
+    detectWiFi();
+});
+</script>
+{% endblock %}

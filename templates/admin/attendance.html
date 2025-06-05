@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+
+{% block title %}Attendance Records{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2>Attendance Records</h2>
+    
+    <form class="d-flex" method="get">
+        <input type="date" class="form-control me-2" name="date" value="{{ selected_date }}">
+        <button type="submit" class="btn btn-primary">Filter</button>
+    </form>
+</div>
+
+{% if attendance_records %}
+    <div class="table-responsive">
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Name</th>
+                    <th>Roll Number</th>
+                    <th>Date</th>
+                    <th>Time</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for record in attendance_records %}
+                <tr>
+                    <td>{{ loop.index }}</td>
+                    <td>{{ record.name }}</td>
+                    <td>{{ record.roll_number }}</td>
+                    <td>{{ record.date }}</td>
+                    <td>{{ record.time }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+{% else %}
+    <div class="alert alert-info">
+        No attendance records found for the selected date.
+    </div>
+{% endif %}
+{% endblock %}

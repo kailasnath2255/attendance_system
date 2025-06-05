@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+
+{% block title %}Admin Dashboard{% endblock %}
+
+{% block content %}
+<h2>Admin Dashboard</h2>
+<div class="row mt-4">
+    <div class="col-md-4">
+        <div class="card text-white bg-primary">
+            <div class="card-body">
+                <h5 class="card-title">Total Students</h5>
+                <p class="card-text display-4">{{ student_count }}</p>
+                <a href="{{ url_for('view_students') }}" class="btn btn-light">View Students</a>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card text-white bg-success">
+            <div class="card-body">
+                <h5 class="card-title">Today's Attendance</h5>
+                <p class="card-text display-4">{{ attendance_today }}</p>
+                <a href="{{ url_for('view_attendance') }}" class="btn btn-light">View Attendance</a>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <div class="card text-white bg-info">
+            <div class="card-body">
+                <h5 class="card-title">Quick Actions</h5>
+                <div class="d-grid gap-2">
+                    <a href="{{ url_for('register_student') }}" class="btn btn-light">Register New Student</a>
+                    <a href="{{ url_for('wifi_settings') }}" class="btn btn-light">WiFi Settings</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

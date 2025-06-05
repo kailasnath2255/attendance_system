@@ -1,0 +1,254 @@
+{% extends "base.html" %}
+
+{% block title %}My Attendance Percentage{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header">
+                    <h4 class="mb-0">
+                        <i class="fas fa-chart-line"></i> My Attendance Percentage
+                    </h4>
+                </div>
+                <div class="card-body">
+                    <!-- Student Info -->
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <h5>{{ student.name }}</h5>
+                            <p class="text-muted">Roll Number: {{ student.roll_number }}</p>
+                            <p class="text-muted">Email: {{ student.email }}</p>
+                        </div>
+                        <div class="col-md-6 text-right">
+                            {% if student.image_path %}
+                            <img src="{{ url_for('static', filename='uploads/' + student.image_path) }}" 
+                                 alt="Student Photo" class="img-thumbnail" style="width: 100px; height: 100px; object-fit: cover;">
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <!-- Attendance Summary Cards -->
+                    <div class="row mb-4">
+                        <div class="col-md-3">
+                            <div class="card bg-primary text-white">
+                                <div class="card-body text-center">
+                                    <h3>{{ days_present }}</h3>
+                                    <p class="mb-0">Days Present</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card bg-secondary text-white">
+                                <div class="card-body text-center">
+                                    <h3>{{ total_working_days }}</h3>
+                                    <p class="mb-0">Total Working Days</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card {{ 'bg-danger' if is_shortage else 'bg-success' }} text-white">
+                                <div class="card-body text-center">
+                                    <h3>{{ percentage }}%</h3>
+                                    <p class="mb-0">Attendance Percentage</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card bg-info text-white">
+                                <div class="card-body text-center">
+                                    <h3>{{ total_working_days - days_present }}</h3>
+                                    <p class="mb-0">Days Absent</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Attendance Status -->
+                    <div class="row mb-4">
+                        <div class="col-md-12">
+                            <div class="card {{ 'border-danger' if is_shortage else 'border-success' }}">
+                                <div class="card-body">
+                                    {% if is_shortage %}
+                                        <div class="alert alert-danger" role="alert">
+                                            <h5 class="alert-heading">
+                                                <i class="fas fa-exclamation-triangle"></i> Attendance Shortage Warning!
+                                            </h5>
+                                            <p>Your attendance percentage is <strong>{{ percentage }}%</strong>, which is below the required 75%.</p>
+                                            <hr>
+                                            <p class="mb-0">
+                                                <strong>Days needed to reach 75%:</strong> {{ days_needed }} days
+                                                <br>
+                                                <small class="text-muted">You need to attend the next {{ days_needed }} consecutive days to meet the minimum requirement.</small>
+                                            </p>
+                                        </div>
+                                    {% else %}
+                                        <div class="alert alert-success" role="alert">
+                                            <h5 class="alert-heading">
+                                                <i class="fas fa-check-circle"></i> Excellent Attendance!
+                                            </h5>
+                                            <p class="mb-0">Your attendance percentage is <strong>{{ percentage }}%</strong>, which meets the required 75% minimum.</p>
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Progress Bar -->
+                    <div class="row mb-4">
+                        <div class="col-md-12">
+                            <div class="card">
+                                <div class="card-body">
+                                    <h6>Attendance Progress</h6>
+                                    <div class="progress" style="height: 25px;">
+                                        <div class="progress-bar {{ 'bg-danger' if is_shortage else 'bg-success' }}" 
+                                             role="progressbar" 
+                                             style="width: {{ percentage }}%;" 
+                                             aria-valuenow="{{ percentage }}" 
+                                             aria-valuemin="0" 
+                                             aria-valuemax="100">
+                                            {{ percentage }}%
+                                        </div>
+                                    </div>
+                                    <div class="mt-2">
+                                        <small class="text-muted">
+                                            Minimum required: <span class="text-warning">75%</span>
+                                        </small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Recent Attendance Records -->
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h6 class="mb-0">Recent Attendance Records</h6>
+                                </div>
+                                <div class="card-body">
+                                    {% if attendance_records %}
+                                        <div class="table-responsive">
+                                            <table class="table table-sm table-striped">
+                                                <thead>
+                                                    <tr>
+                                                        <th>Date</th>
+                                                        <th>Time</th>
+                                                        <th>Status</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    {% for record in attendance_records[:10] %}
+                                                    <tr>
+                                                        <td>{{ record.date }}</td>
+                                                        <td>{{ record.time }}</td>
+                                                        <td>
+                                                            <span class="badge badge-success">
+                                                                <i class="fas fa-check"></i> Present
+                                                            </span>
+                                                        </td>
+                                                    </tr>
+                                                    {% endfor %}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                        {% if attendance_records|length > 10 %}
+                                            <div class="text-center mt-3">
+                                                <a href="{{ url_for('attendance_history') }}" class="btn btn-outline-primary">
+                                                    View Complete History
+                                                </a>
+                                            </div>
+                                        {% endif %}
+                                    {% else %}
+                                        <p class="text-muted text-center">No attendance records found.</p>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Action Buttons -->
+                    <div class="row mt-4">
+                        <div class="col-md-12 text-center">
+                            <a href="{{ url_for('mark_attendance') }}" class="btn btn-primary btn-lg">
+                                <i class="fas fa-camera"></i> Mark Today's Attendance
+                            </a>
+                            <a href="{{ url_for('attendance_history') }}" class="btn btn-outline-secondary btn-lg ml-2">
+                                <i class="fas fa-history"></i> View Full History
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.card {
+    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+    border: 1px solid rgba(0, 0, 0, 0.125);
+    margin-bottom: 1rem;
+}
+
+.progress {
+    background-color: #e9ecef;
+}
+
+.alert {
+    border-radius: 0.5rem;
+}
+
+.badge {
+    font-size: 0.75em;
+}
+
+.img-thumbnail {
+    border-radius: 50%;
+}
+
+.border-danger {
+    border-color: #dc3545 !important;
+}
+
+.border-success {
+    border-color: #28a745 !important;
+}
+
+.text-danger {
+    color: #dc3545 !important;
+}
+
+.text-success {
+    color: #28a745 !important;
+}
+
+.bg-danger {
+    background-color: #dc3545 !important;
+}
+
+.bg-success {
+    background-color: #28a745 !important;
+}
+</style>
+
+<script>
+// Auto-refresh attendance data every 30 seconds
+setInterval(function() {
+    fetch('/api/attendance-stats')
+        .then(response => response.json())
+        .then(data => {
+            if (data.percentage !== undefined) {
+                // Update percentage display if it has changed
+                const currentPercentage = parseFloat(document.querySelector('.progress-bar').style.width);
+                if (Math.abs(currentPercentage - data.percentage) > 0.1) {
+                    location.reload(); // Reload page if attendance has changed
+                }
+            }
+        })
+        .catch(error => console.log('Auto-refresh error:', error));
+}, 30000);
+</script>
+{% endblock %}

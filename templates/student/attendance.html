@@ -1,0 +1,360 @@
+{% extends 'base.html' %}
+
+{% block title %}Mark Attendance{% endblock %}
+
+{% block content %}
+<div class="container">
+    <h1>Mark Attendance</h1>
+    
+    {% if already_marked %}
+    <div class="alert alert-info mt-4">
+        <h4>Attendance Already Marked</h4>
+        <p>You have already marked your attendance today at {{ last_marked_time }}.</p>
+    </div>
+    {% else %}
+    <div class="row mt-4">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h4>Face Verification</h4>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3 text-center">
+                        <div id="camera-container">
+                            <video id="camera" width="100%" height="auto" autoplay></video>
+                            <canvas id="canvas" style="display:none"></canvas>
+                            <div id="camera-placeholder" class="alert alert-secondary text-center p-5">
+                                <i class="fas fa-camera fa-3x mb-3"></i>
+                                <p>Camera will appear here</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="d-grid gap-2">
+                        <button id="capture-btn" class="btn btn-primary">Capture Image</button>
+                        <button id="mark-attendance-btn" class="btn btn-success" disabled>Mark Attendance</button>
+                    </div>
+                    <div id="verification-status" class="mt-3"></div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-6">
+            <div class="card mb-4">
+                <div class="card-header bg-info text-white">
+                    <h4>WiFi Connection Status</h4>
+                </div>
+                <div class="card-body">
+                    <div id="wifi-status-container">
+                        <div class="d-flex align-items-center mb-2">
+                            <div class="spinner-border spinner-border-sm text-primary me-2" id="wifi-spinner"></div>
+                            <span id="detection-status">Checking WiFi connection...</span>
+                        </div>
+                        <div id="wifi-details" class="d-none">
+                            <div class="mb-2"><strong>Connected to:</strong> <span id="current-ssid">Loading...</span></div>
+                            <div class="mb-2"><strong>Access Point:</strong> <span id="current-bssid">Loading...</span></div>
+                            <div class="mb-2"><strong>Your MAC Address:</strong> <span id="your-mac-address">Loading...</span></div>
+                            <div class="mb-2"><strong>Required MAC Address:</strong> <span id="required-mac-address">Loading...</span></div>
+                            <div id="status-message" class="alert mt-3"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card">
+                <div class="card-header">
+                    <h4>Instructions</h4>
+                </div>
+                <div class="card-body">
+                    <ol>
+                        <li>Make sure you are connected to the required WiFi network</li>
+                        <li>Position your face clearly in front of the camera</li>
+                        <li>Ensure good lighting conditions</li>
+                        <li>Click "Capture Image" and then "Mark Attendance"</li>
+                    </ol>
+                    <div class="alert alert-warning">
+                        <i class="fas fa-exclamation-triangle"></i> You must be physically present on campus and connected to the authorized WiFi access point to mark attendance.
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // WiFi status elements
+    const wifiSpinner = document.getElementById('wifi-spinner');
+    const wifiDetails = document.getElementById('wifi-details');
+    const currentSsid = document.getElementById('current-ssid');
+    const currentBssid = document.getElementById('current-bssid');
+    const yourMacAddress = document.getElementById('your-mac-address');
+    const requiredMacAddress = document.getElementById('required-mac-address');
+    const statusMessage = document.getElementById('status-message');
+    const detectionStatus = document.getElementById('detection-status');
+    
+    // Camera elements
+    const video = document.getElementById('camera');
+    const canvas = document.getElementById('canvas');
+    const cameraPlaceholder = document.getElementById('camera-placeholder');
+    const captureBtn = document.getElementById('capture-btn');
+    const markAttendanceBtn = document.getElementById('mark-attendance-btn');
+    const verificationStatus = document.getElementById('verification-status');
+    
+    let capturedImage = null;
+    let wifiConnected = false;
+    let macAddressMatched = false;
+    
+    // Function to get the MAC address
+    function getMacAddress() {
+        fetch('/api/mac-address')
+        .then(response => response.json())
+        .then(data => {
+            yourMacAddress.textContent = data.mac_address || 'Not detected';
+        })
+        .catch(error => {
+            console.error('Error getting MAC address:', error);
+            yourMacAddress.textContent = 'Failed to detect';
+        });
+    }
+    
+    // Function to check WiFi connection
+    function checkWiFi() {
+        // First get MAC address
+        getMacAddress();
+        
+        fetch('/api/check-wifi', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({})
+        })
+        .then(response => response.json())
+        .then(data => {
+            wifiSpinner.classList.add('d-none');
+            wifiDetails.classList.remove('d-none');
+            
+            currentSsid.textContent = data.ssid || 'Not detected';
+            currentBssid.textContent = data.bssid || 'Not detected';
+            requiredMacAddress.textContent = data.required_bssid || 'None required';
+            
+            // Check for MAC address match
+            if (data.required_bssid && yourMacAddress.textContent.toLowerCase() === data.required_bssid.toLowerCase()) {
+                macAddressMatched = true;
+            }
+            
+            // Check WiFi connection or MAC address match
+            if (data.connected || macAddressMatched) {
+                statusMessage.classList.remove('alert-danger');
+                statusMessage.classList.add('alert-success');
+                
+                if (data.connected) {
+                    statusMessage.innerHTML = '<i class="fas fa-check-circle"></i> You are connected to an authorized WiFi access point.';
+                } else {
+                    statusMessage.innerHTML = '<i class="fas fa-check-circle"></i> Your device MAC address matches the authorized access point.';
+                }
+                
+                wifiConnected = true;
+            } else {
+                statusMessage.classList.remove('alert-success');
+                statusMessage.classList.add('alert-danger');
+                
+                let message = '<i class="fas fa-times-circle"></i> Not connected to the required WiFi access point.';
+                if (data.required_bssid) {
+                    message += ' Please ensure you are connected to the campus WiFi.';
+                } else {
+                    message += ' No specific access point is required.';
+                    // If no specific AP is required, we can still allow attendance
+                    wifiConnected = true;
+                }
+                
+                statusMessage.innerHTML = message;
+            }
+            
+            updateAttendanceButton();
+        })
+        .catch(error => {
+            console.error('Error checking WiFi:', error);
+            wifiSpinner.classList.add('d-none');
+            detectionStatus.textContent = 'Failed to check WiFi status.';
+            detectionStatus.className = 'text-danger';
+            
+            statusMessage.classList.add('alert-danger');
+            statusMessage.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Failed to check WiFi status. Please refresh the page.';
+            wifiConnected = false;
+            updateAttendanceButton();
+        });
+    }
+    
+    // Function to get CSRF token from cookies (if using CSRF protection)
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+    
+    // Initialize camera
+    function initCamera() {
+        if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+            navigator.mediaDevices.getUserMedia({ video: true })
+                .then(function(stream) {
+                    video.srcObject = stream;
+                    video.style.display = 'block';
+                    cameraPlaceholder.style.display = 'none';
+                })
+                .catch(function(error) {
+                    console.error('Camera access error:', error);
+                    verificationStatus.innerHTML = '<div class="alert alert-danger"><i class="fas fa-camera-slash"></i> Failed to access camera. Please check your camera permissions.</div>';
+                });
+        } else {
+            verificationStatus.innerHTML = '<div class="alert alert-danger"><i class="fas fa-camera-slash"></i> Your browser does not support camera access.</div>';
+        }
+    }
+    
+    // Capture image from video
+    captureBtn.addEventListener('click', function() {
+        if (!video.srcObject) {
+            verificationStatus.innerHTML = '<div class="alert alert-danger"><i class="fas fa-camera-slash"></i> Camera is not initialized. Please refresh the page.</div>';
+            return;
+        }
+        
+        const context = canvas.getContext('2d');
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        context.drawImage(video, 0, 0, canvas.width, canvas.height);
+        
+        capturedImage = canvas.toDataURL('image/jpeg');
+        
+        // Show preview of captured image
+        verificationStatus.innerHTML = `
+            <div class="alert alert-info">
+                <h5><i class="fas fa-image"></i> Image Captured</h5>
+                <div class="text-center mb-2">
+                    <img src="${capturedImage}" alt="Captured image" style="max-width: 100%; max-height: 200px;" class="border">
+                </div>
+                <p>Image has been captured. Click "Mark Attendance" to continue.</p>
+            </div>
+        `;
+        
+        updateAttendanceButton();
+    });
+    
+    // Update attendance button state
+    function updateAttendanceButton() {
+        if (capturedImage && (wifiConnected || macAddressMatched)) {
+            markAttendanceBtn.disabled = false;
+        } else {
+            markAttendanceBtn.disabled = true;
+        }
+    }
+    
+    // Mark attendance
+    markAttendanceBtn.addEventListener('click', function() {
+        verificationStatus.innerHTML = `
+            <div class="alert alert-info">
+                <div class="d-flex align-items-center">
+                    <div class="spinner-border spinner-border-sm me-2" role="status"></div>
+                    <span>Verifying and marking attendance...</span>
+                </div>
+            </div>
+        `;
+        
+        // Disable the button while processing
+        markAttendanceBtn.disabled = true;
+        
+        // Convert base64 image to blob for form data
+        const base64Data = capturedImage.split(',')[1];
+        const blob = b64toBlob(base64Data, 'image/jpeg');
+        
+        const formData = new FormData();
+        formData.append('image', blob, 'capture.jpg');
+        
+        // Add MAC address to the form data
+        formData.append('mac_address', yourMacAddress.textContent);
+        
+        // Send the request
+        fetch('/api/mark-attendance', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                verificationStatus.innerHTML = `
+                    <div class="alert alert-success">
+                        <h5><i class="fas fa-check-circle"></i> Attendance Marked Successfully</h5>
+                        <p>${data.message}</p>
+                        <div class="text-center mt-3">
+                            <a href="/student/dashboard" class="btn btn-primary">Go to Dashboard</a>
+                        </div>
+                    </div>
+                `;
+                
+                // Disable the capture and mark attendance buttons
+                captureBtn.disabled = true;
+                markAttendanceBtn.disabled = true;
+            } else {
+                verificationStatus.innerHTML = `
+                    <div class="alert alert-danger">
+                        <h5><i class="fas fa-times-circle"></i> Attendance Marking Failed</h5>
+                        <p>${data.message || 'Face verification failed. Please try again.'}</p>
+                    </div>
+                `;
+                markAttendanceBtn.disabled = false;
+            }
+        })
+        .catch(error => {
+            console.error('Error marking attendance:', error);
+            verificationStatus.innerHTML = `
+                <div class="alert alert-danger">
+                    <h5><i class="fas fa-exclamation-triangle"></i> System Error</h5>
+                    <p>Failed to process your attendance. Please try again later.</p>
+                </div>
+            `;
+            markAttendanceBtn.disabled = false;
+        });
+    });
+    
+    // Helper function to convert base64 to blob
+    function b64toBlob(b64Data, contentType = '', sliceSize = 512) {
+        const byteCharacters = atob(b64Data);
+        const byteArrays = [];
+        
+        for (let offset = 0; offset < byteCharacters.length; offset += sliceSize) {
+            const slice = byteCharacters.slice(offset, offset + sliceSize);
+            
+            const byteNumbers = new Array(slice.length);
+            for (let i = 0; i < slice.length; i++) {
+                byteNumbers[i] = slice.charCodeAt(i);
+            }
+            
+            const byteArray = new Uint8Array(byteNumbers);
+            byteArrays.push(byteArray);
+        }
+        
+        return new Blob(byteArrays, { type: contentType });
+    }
+    
+    // Check WiFi on page load
+    checkWiFi();
+    
+    // Refresh WiFi status every 60 seconds
+    setInterval(checkWiFi, 60000);
+    
+    // Initialize camera on page load
+    initCamera();
+});
+</script>
+{% endblock %}

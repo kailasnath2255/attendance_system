@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+
+{% block title %}Student Dashboard{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-4">
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5>Student Profile</h5>
+            </div>
+            <div class="card-body text-center">
+                <img src="{{ url_for('static', filename='uploads/' + student.image_path) }}" 
+                     alt="{{ student.name }}" class="img-fluid rounded-circle mb-3" style="max-width: 150px;">
+                <h4>{{ student.name }}</h4>
+                <p class="text-muted">Roll Number: {{ student.roll_number }}</p>
+                <p class="text-muted">{{ student.email }}</p>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-8">
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5>Attendance Summary</h5>
+            </div>
+            <div class="card-body">
+                <div class="row text-center">
+                    <div class="col-6">
+                        <h2 class="display-4">{{ attendance_count }}</h2>
+                        <p class="text-muted">Total Days Present</p>
+                    </div>
+                    <div class="col-6">
+                        <h2 class="display-4">
+                            {% if marked_today %}
+                                <span class="text-success">✓</span>
+                            {% else %}
+                                <span class="text-danger">✗</span>
+                            {% endif %}
+                        </h2>
+                        <p class="text-muted">Today's Attendance</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="card">
+            <div class="card-header">
+                <h5>Quick Actions</h5>
+            </div>
+            <div class="card-body">
+                <div class="d-grid gap-2">
+                    <a href="{{ url_for('mark_attendance') }}" class="btn btn-primary">
+                        {% if marked_today %}
+                            View Attendance Status
+                        {% else %}
+                            Mark Attendance
+                        {% endif %}
+                    </a>
+                    <a href="{{ url_for('attendance_history') }}" class="btn btn-outline-primary">View Attendance History</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
