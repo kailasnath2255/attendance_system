@@ -1,0 +1,91 @@
+{
+  "backgroundAnimation": {
+    "type": "particles",
+    "particleCount": 50,
+    "colors": ["#1a237e", "#00bcd4", "#00e676", "#ff5722"],
+    "size": {
+      "min": 2,
+      "max": 8
+    },
+    "speed": {
+      "min": 0.5,
+      "max": 2
+    },
+    "opacity": {
+      "min": 0.1,
+      "max": 0.6
+    },
+    "connections": {
+      "enabled": true,
+      "distance": 120,
+      "lineWidth": 1,
+      "opacity": 0.3
+    }
+  },
+  "waveAnimation": {
+    "enabled": true,
+    "waves": [
+      {
+        "color": "rgba(26, 35, 126, 0.05)",
+        "speed": 0.02,
+        "amplitude": 20,
+        "frequency": 0.01
+      },
+      {
+        "color": "rgba(0, 188, 212, 0.03)",
+        "speed": 0.015,
+        "amplitude": 30,
+        "frequency": 0.008
+      },
+      {
+        "color": "rgba(0, 230, 118, 0.02)",
+        "speed": 0.025,
+        "amplitude": 15,
+        "frequency": 0.012
+      }
+    ]
+  },
+  "gridAnimation": {
+    "enabled": true,
+    "gridSize": 40,
+    "color": "rgba(26, 35, 126, 0.08)",
+    "lineWidth": 1,
+    "pulseSpeed": 3,
+    "glowIntensity": 0.5
+  },
+  "floatingElements": {
+    "enabled": true,
+    "elements": [
+      {
+        "type": "wifi-signal",
+        "count": 8,
+        "size": 20,
+        "color": "rgba(0, 230, 118, 0.2)",
+        "speed": 1.5,
+        "pattern": "circular"
+      },
+      {
+        "type": "network-node",
+        "count": 12,
+        "size": 6,
+        "color": "rgba(0, 188, 212, 0.3)",
+        "speed": 0.8,
+        "pattern": "random"
+      },
+      {
+        "type": "data-packet",
+        "count": 15,
+        "size": 4,
+        "color": "rgba(26, 35, 126, 0.4)",
+        "speed": 2.2,
+        "pattern": "linear"
+      }
+    ]
+  },
+  "performance": {
+    "reducedMotion": true,
+    "fpsLimit": 60,
+    "autoOptimize": true,
+    "pauseOnBlur": true
+  }
+}

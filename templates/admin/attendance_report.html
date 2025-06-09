@@ -52,11 +52,11 @@
                             </div>
                         </div>
                         <div class="col-md-3">
-                            <div class="card bg-danger text-white">
+                            <div class="cardbg-danger text-white">
                                 <div class="card-body">
                                     <div class="d-flex justify-content-between">
                                         <div>
-                                            <h6>Attendance Shortage (<75%)</h6>
+                                            <h6>Attendance Shortage (<75%) </h6>
                                             <h3>{{ students|selectattr('is_shortage', 'equalto', true)|list|length }}</h3>
                                         </div>
                                         <div class="align-self-center">
@@ -181,13 +181,14 @@
 
 <style>
 .table-danger {
-    background-color: #f5c6cb !important;
+    background-color: #f80e0e !important;
 }
 
 .card {
     box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
     border: 1px solid rgba(0, 0, 0, 0.125);
 }
+
 
 .badge {
     font-size: 0.75em;
@@ -199,9 +200,12 @@
 }
 
 .text-danger {
-    color: #dc3545 !important;
+    color: #d3081c !important;
 }
 
+.cardbg-danger {
+    color: #d3081c !important;
+}
 .text-success {
     color: #28a745 !important;
 }

@@ -28,3 +28,206 @@
     </div>
 </div>
 {% endblock %}
+<script>
+// Animated Background Manager using JSON Configuration
+class AnimatedBackground {
+    constructor(config) {
+        this.config = config;
+        this.elements = [];
+        this.isActive = true;
+        this.init();
+    }
+
+    async init() {
+        // Create network nodes
+        if (this.config.floatingElements.enabled) {
+            this.createNetworkNodes();
+        }
+
+        // Create WiFi signals
+        this.createWiFiSignals();
+
+        // Create data flow lines
+        this.createDataFlows();
+
+        // Start animation loop
+        this.animate();
+
+        // Handle performance optimization
+        this.setupPerformanceOptimization();
+    }
+
+    createNetworkNodes() {
+        const nodeElement = this.config.floatingElements.elements.find(el => el.type === 'network-node');
+        if (!nodeElement) return;
+
+        for (let i = 0; i < nodeElement.count; i++) {
+            const node = document.createElement('div');
+            node.className = 'network-node';
+            node.style.cssText = `
+                left: ${Math.random() * 100}vw;
+                top: ${Math.random() * 100}vh;
+                animation-delay: ${Math.random() * 8}s;
+                animation-duration: ${8 + Math.random() * 4}s;
+            `;
+            document.body.appendChild(node);
+            this.elements.push(node);
+        }
+    }
+
+    createWiFiSignals() {
+        const wifiElement = this.config.floatingElements.elements.find(el => el.type === 'wifi-signal');
+        if (!wifiElement) return;
+
+        for (let i = 0; i < wifiElement.count; i++) {
+            const signal = document.createElement('div');
+            signal.className = 'wifi-signal-bg';
+            signal.style.cssText = `
+                top: ${Math.random() * 80 + 10}vh;
+                right: ${Math.random() * 80 + 10}vw;
+                animation-delay: ${Math.random() * 15}s;
+            `;
+            document.body.appendChild(signal);
+            this.elements.push(signal);
+        }
+    }
+
+    createDataFlows() {
+        const dataElement = this.config.floatingElements.elements.find(el => el.type === 'data-packet');
+        if (!dataElement) return;
+
+        for (let i = 0; i < dataElement.count; i++) {
+            const flow = document.createElement('div');
+            flow.className = 'data-flow';
+            flow.style.cssText = `
+                top: ${Math.random() * 100}vh;
+                animation-delay: ${Math.random() * 8}s;
+                animation-duration: ${8 + Math.random() * 8}s;
+            `;
+            document.body.appendChild(flow);
+            this.elements.push(flow);
+        }
+    }
+
+    setupPerformanceOptimization() {
+        // Pause animations when tab is not visible
+        if (this.config.performance.pauseOnBlur) {
+            document.addEventListener('visibilitychange', () => {
+                const isHidden = document.hidden;
+                this.elements.forEach(el => {
+                    el.style.animationPlayState = isHidden ? 'paused' : 'running';
+                });
+            });
+        }
+
+        // Respect reduced motion preference
+        if (this.config.performance.reducedMotion && 
+            window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+            this.elements.forEach(el => {
+                el.style.animation = 'none';
+                el.style.opacity = '0.05';
+            });
+        }
+
+        // Auto-optimize based on performance
+        if (this.config.performance.autoOptimize) {
+            this.monitorPerformance();
+        }
+    }
+
+    monitorPerformance() {
+        let frameCount = 0;
+        let lastTime = performance.now();
+
+        const checkFPS = () => {
+            frameCount++;
+            const currentTime = performance.now();
+            
+            if (currentTime - lastTime >= 1000) {
+                const fps = Math.round((frameCount * 1000) / (currentTime - lastTime));
+                
+                // If FPS is low, reduce animation intensity
+                if (fps < 30) {
+                    this.reduceAnimationIntensity();
+                }
+                
+                frameCount = 0;
+                lastTime = currentTime;
+            }
+            
+            if (this.isActive) {
+                requestAnimationFrame(checkFPS);
+            }
+        };
+
+        requestAnimationFrame(checkFPS);
+    }
+
+    reduceAnimationIntensity() {
+        // Remove some elements to improve performance
+        const elementsToRemove = Math.floor(this.elements.length * 0.3);
+        for (let i = 0; i < elementsToRemove; i++) {
+            const randomIndex = Math.floor(Math.random() * this.elements.length);
+            const element = this.elements[randomIndex];
+            if (element && element.parentNode) {
+                element.parentNode.removeChild(element);
+                this.elements.splice(randomIndex, 1);
+            }
+        }
+    }
+
+    animate() {
+        // Additional custom animations can be added here
+        if (this.isActive) {
+            requestAnimationFrame(() => this.animate());
+        }
+    }
+
+    destroy() {
+        this.isActive = false;
+        this.elements.forEach(el => {
+            if (el && el.parentNode) {
+                el.parentNode.removeChild(el);
+            }
+        });
+        this.elements = [];
+    }
+}
+
+// Initialize animated background when DOM is loaded
+document.addEventListener('DOMContentLoaded', async () => {
+    try {
+        // Fetch the JSON configuration
+        const response = await fetch('./background-config.json');
+        const config = await response.json();
+        
+        // Initialize animated background
+        const animatedBg = new AnimatedBackground(config);
+        
+        // Make it globally accessible for debugging
+        window.animatedBackground = animatedBg;
+        
+    } catch (error) {
+        console.warn('Could not load animated background configuration:', error);
+        
+        // Fallback configuration
+        const fallbackConfig = {
+            floatingElements: {
+                enabled: true,
+                elements: [
+                    { type: 'network-node', count: 8, size: 6, speed: 0.8 },
+                    { type: 'wifi-signal', count: 5, size: 20, speed: 1.5 },
+                    { type: 'data-packet', count: 10, size: 4, speed: 2.2 }
+                ]
+            },
+            performance: {
+                reducedMotion: true,
+                pauseOnBlur: true,
+                autoOptimize: true
+            }
+        };
+        
+        const animatedBg = new AnimatedBackground(fallbackConfig);
+        window.animatedBackground = animatedBg;
+    }
+});
